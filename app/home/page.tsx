@@ -47,6 +47,82 @@ const videoSequence = [
 
 type VideoItem = (typeof videoSequence)[number];
 
+const founderOfficeToolGroups = [
+  {
+    title: "FRONTEND & FULL-STACK",
+    tools: [
+      { name: "Next.js", slug: "nextdotjs", fallback: "N" },
+      { name: "React", slug: "react", fallback: "R" },
+      { name: "Tailwind CSS", slug: "tailwindcss", fallback: "TW" },
+    ],
+  },
+  {
+    title: "DATABASES & CACHING",
+    tools: [
+      { name: "PostgreSQL", slug: "postgresql", fallback: "PG" },
+      { name: "MySQL", slug: "mysql", fallback: "MY" },
+      { name: "SQL", slug: null, fallback: "SQL" },
+      { name: "Redis", slug: "redis", fallback: "RE" },
+    ],
+  },
+  {
+    title: "API TESTING & BACKEND",
+    tools: [
+      { name: "Postman", slug: "postman", fallback: "PM" },
+      { name: "Swagger / OpenAPI", slug: "swagger", fallback: "API" },
+      { name: "cURL", slug: "curl", fallback: "cURL" },
+    ],
+  },
+  {
+    title: "PRODUCT & PRD SPECS",
+    tools: [
+      { name: "Notion", slug: "notion", fallback: "NO" },
+      { name: "Jira", slug: "jira", fallback: "JI" },
+      { name: "Confluence", slug: "confluence", fallback: "CO" },
+      { name: "Linear", slug: "linear", fallback: "LI" },
+    ],
+  },
+  {
+    title: "UI/UX & PROTOTYPING",
+    tools: [
+      { name: "Figma", slug: "figma", fallback: "FI" },
+      { name: "v0 by Vercel", slug: "v0", fallback: "v0" },
+      { name: "Balsamiq", slug: "balsamiq", fallback: "BA" },
+    ],
+  },
+  {
+    title: "TESTING, QA & DEVOPS",
+    tools: [
+      { name: "BrowserStack", slug: "browserstack", fallback: "BS" },
+      { name: "Lighthouse", slug: "lighthouse", fallback: "LH" },
+      { name: "Git", slug: "git", fallback: "GI" },
+      { name: "GitHub", slug: "github", fallback: "GH" },
+      { name: "Docker", slug: "docker", fallback: "DO" },
+    ],
+  },
+  {
+    title: "AI & WORKFLOW AUTOMATION",
+    tools: [
+      { name: "Claude", slug: "anthropic", fallback: "CL" },
+      { name: "ChatGPT", slug: "openai", fallback: "AI" },
+      { name: "Make.com", slug: "make", fallback: "MA" },
+      { name: "Supabase", slug: "supabase", fallback: "SU" },
+    ],
+  },
+] as const;
+
+function ToolLogo({ slug, fallback }: { slug: string | null; fallback: string }) {
+  const [logoFailed, setLogoFailed] = useState(!slug);
+
+  return (
+    <span className="hire-tool-logo" aria-hidden="true">
+      {slug && !logoFailed
+        ? <img src={`https://cdn.simpleicons.org/${slug}`} alt="" onError={() => setLogoFailed(true)} />
+        : <span className="hire-tool-logo-fallback">{fallback}</span>}
+    </span>
+  );
+}
+
 const projectJourney = [
   {
     id: 1,
@@ -602,18 +678,17 @@ export default function StudioHome() {
             </ul>
           </div>
           <div className="hire-tool-groups">
-            <div className="hire-tool-group" aria-label="AI tools I use">
-              <p>AI TOOLS</p>
-              <div><img src="https://cdn.simpleicons.org/anthropic" alt="" /><span>Claude</span></div>
-              <div><img src="https://cdn.simpleicons.org/openai" alt="" /><span>GPT</span></div>
-              <div><img src="https://cdn.simpleicons.org/googlegemini" alt="" /><span>Gemini</span></div>
-            </div>
-            <div className="hire-tool-group" aria-label="Development and marketing tools I use">
-              <p>DEVELOPMENT &amp; MARKETING</p>
-              <div><img src="https://cdn.simpleicons.org/django" alt="" /><span>Django</span></div>
-              <div><img src="https://cdn.simpleicons.org/mongodb" alt="" /><span>MongoDB</span></div>
-              <div><img src="https://cdn.simpleicons.org/meta" alt="" /><span>Meta Ads</span></div>
-            </div>
+            {founderOfficeToolGroups.map(group => (
+              <div className="hire-tool-group" key={group.title}>
+                <p>{group.title}</p>
+                {group.tools.map(tool => (
+                  <div className="hire-tool" key={tool.name}>
+                    <ToolLogo slug={tool.slug} fallback={tool.fallback} />
+                    <span>{tool.name}</span>
+                  </div>
+                ))}
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -664,7 +739,7 @@ export default function StudioHome() {
             aria-label="View my Product Management Associate application portfolio"
             onClick={() => window.open("https://satvic-movement-pma.vercel.app", "_blank", "noopener,noreferrer")}
           >
-            View my PMA portfolio
+            View my Founder office portfolio
           </LiquidMetalButton>
         </div>
       </section>
