@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 const messages = [
   "Welcome, Satvic Team",
-  "I'm Piyush, applying for Founder’s Office role",
+  "I'm Piyush, applying for Project Management Assistant",
   "A glimpse into what I've built and what I can bring",
 ];
 
