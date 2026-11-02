@@ -586,8 +586,8 @@ export default function StudioHome() {
               title="Resume"
               handle=""
               status=""
-              documentPreviewUrl="/satvic-movement-founder-office.pdf"
-              actionHref="/satvic-movement-founder-office.pdf"
+              documentPreviewUrl="/satvic-movement-pm.pdf"
+              actionHref="/satvic-movement-pm.pdf"
               actionLabel="Download my resume"
               holo={0.8}
               glare={0.5}
