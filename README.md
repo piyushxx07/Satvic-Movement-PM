@@ -1,6 +1,6 @@
-# Satvic Movement Language Studio
+# Satvic Movement Founder’s Office Portfolio
 
-A small Next.js workspace concept for organizing Hindi source videos and regional language dubs.
+An interactive Next.js portfolio for the Satvic Movement Founder’s Office application.
 
 ## Run locally
 
@@ -10,10 +10,6 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000). The welcome screen types its messages and then opens `/home`.
-
-## Video folders
-
-Place Hindi source videos and regional dubs in the matching folders under `Videos/States`. Large video files are not intended to be committed to GitHub; keep them in shared storage and upload only the project code and folder placeholders.
 
 ## Deploy
 

@@ -1,4 +1,4 @@
-import type { HTMLAttributes, Ref } from "react"
+import type { HTMLAttributes, ReactNode, Ref } from "react"
 
 const PHONE_WIDTH = 433
 const PHONE_HEIGHT = 882
@@ -22,6 +22,7 @@ export interface IphoneProps extends HTMLAttributes<HTMLDivElement> {
   videoRef?: Ref<HTMLVideoElement>
   videoAutoPlay?: boolean
   videoMuted?: boolean
+  children?: ReactNode
 }
 
 export function Iphone({
@@ -32,10 +33,11 @@ export function Iphone({
   videoRef,
   videoAutoPlay = true,
   videoMuted = true,
+  children,
   ...props
 }: IphoneProps) {
   const hasVideo = !!videoSrc
-  const hasMedia = hasVideo || !!src
+  const hasMedia = hasVideo || !!src || !!children
 
   return (
     <div
@@ -89,11 +91,26 @@ export function Iphone({
         </div>
       )}
 
+      {children && (
+        <div
+          className="iphone-screen-children"
+          style={{
+            left: `${LEFT_PCT}%`,
+            top: `${TOP_PCT}%`,
+            width: `${WIDTH_PCT}%`,
+            height: `${HEIGHT_PCT}%`,
+            borderRadius: `${RADIUS_H}% / ${RADIUS_V}%`,
+          }}
+        >
+          {children}
+        </div>
+      )}
+
       <svg
         viewBox={`0 0 ${PHONE_WIDTH} ${PHONE_HEIGHT}`}
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        className="absolute inset-0 size-full"
+        className="absolute inset-0 z-2 size-full"
         style={{ transform: "translateZ(0)" }}
       >
         <g mask={hasMedia ? "url(#screenPunch)" : undefined}>

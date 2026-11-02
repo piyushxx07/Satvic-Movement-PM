@@ -15,12 +15,6 @@ const Lanyard = dynamic(() => import("@/components/ui/Lanyard"), {
 
 const brandName = "Satvic Movement";
 const highlightDuration = (brandName.length - 1) * 45 + 520;
-const formatTime = (seconds: number) => {
-  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
-  const minutes = Math.floor(seconds / 60);
-  const remainder = Math.floor(seconds % 60).toString().padStart(2, "0");
-  return `${minutes}:${remainder}`;
-};
 
 function renderJourneyParagraph(text: string) {
   return text.split(/(\*\*.*?\*\*)/g).map((part, index) =>
@@ -31,21 +25,6 @@ function renderJourneyParagraph(text: string) {
 }
 
 type PointerPosition = { x: number; y: number };
-
-const videoSequence = [
-  { state: "Assam", slug: "assam", language: "assamese", label: "Assamese" },
-  { state: "Gujarat", slug: "gujarat", language: "gujarati", label: "Gujarati" },
-  { state: "Karnataka", slug: "karnataka", language: "kannada", label: "Kannada" },
-  { state: "Kerala", slug: "kerala", language: "malayalam", label: "Malayalam" },
-  { state: "Maharashtra", slug: "maharashtra", language: "marathi", label: "Marathi" },
-  { state: "Odisha", slug: "odisha", language: "odia", label: "Odia" },
-  { state: "Punjab", slug: "punjab", language: "punjabi", label: "Punjabi" },
-  { state: "Tamil Nadu", slug: "tamilnadu", language: "tamil", label: "Tamil" },
-  { state: "Telangana", slug: "telangana", language: "telugu", label: "Telugu" },
-  { state: "West Bengal", slug: "westbengal", language: "bengali", label: "Bengali" },
-];
-
-type VideoItem = (typeof videoSequence)[number];
 
 const founderOfficeToolGroups = [
   {
@@ -111,13 +90,20 @@ const founderOfficeToolGroups = [
   },
 ] as const;
 
-function ToolLogo({ slug, fallback }: { slug: string | null; fallback: string }) {
-  const [logoFailed, setLogoFailed] = useState(!slug);
+const toolLogoSources: Record<string, string> = {
+  Balsamiq: "https://balsamiq.com/favicon.ico",
+  BrowserStack: "https://www.browserstack.com/favicon.ico",
+  ChatGPT: "https://cdn.jsdelivr.net/npm/simple-icons@v15/icons/openai.svg",
+};
+
+function ToolLogo({ name, slug, fallback }: { name: string; slug: string | null; fallback: string }) {
+  const source = toolLogoSources[name] ?? (slug ? `https://cdn.simpleicons.org/${slug}` : null);
+  const [logoFailed, setLogoFailed] = useState(!source);
 
   return (
     <span className="hire-tool-logo" aria-hidden="true">
-      {slug && !logoFailed
-        ? <img src={`https://cdn.simpleicons.org/${slug}`} alt="" onError={() => setLogoFailed(true)} />
+      {source && !logoFailed
+        ? <img src={source} alt="" onError={() => setLogoFailed(true)} />
         : <span className="hire-tool-logo-fallback">{fallback}</span>}
     </span>
   );
@@ -237,29 +223,7 @@ function SatvicBrand() {
   );
 }
 
-function VideoPreview({ item, onSelect, cursorLabel }: { item: VideoItem; onSelect: () => void; cursorLabel: string }) {
-  return (
-    <button
-      className="video-preview cursor-target"
-      type="button"
-      aria-label={`Play ${item.label} video`}
-      onClick={onSelect}
-      data-cursor-label={cursorLabel}
-    >
-      <video src={`/api/videos/${item.slug}/${item.language}`} muted playsInline autoPlay loop preload="metadata" />
-      <span className="video-preview-label">{item.label}</span>
-    </button>
-  );
-}
-
 export default function StudioHome() {
-  const [activeIndex, setActiveIndex] = useState(4);
-  const [audioLanguage, setAudioLanguage] = useState<"hindi" | "dub">("dub");
-  const [isPlaying, setIsPlaying] = useState(true);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isSwitching, setIsSwitching] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
   const [contactOpen, setContactOpen] = useState(false);
   const [resumeOpen, setResumeOpen] = useState(false);
   const [contactClosing, setContactClosing] = useState(false);
@@ -267,17 +231,12 @@ export default function StudioHome() {
   const [journeyFromIndex, setJourneyFromIndex] = useState(0);
   const [journeyMoving, setJourneyMoving] = useState(false);
   const [contactOrigin, setContactOrigin] = useState({ x: 0, y: 0 });
-  const videoRef = useRef<HTMLVideoElement | null>(null);
   const contactButtonRef = useRef<HTMLButtonElement | null>(null);
   const contactDialogRef = useRef<HTMLDivElement | null>(null);
   const contactCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hireQuoteDotMatrixRef = useRef<HTMLDivElement | null>(null);
   const journeyMotionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const playingRef = useRef(true);
-  const pendingTimeRef = useRef<number | null>(null);
-  const swipeStartRef = useRef<number | null>(null);
   const dotMatrixRef = useRef<HTMLDivElement | null>(null);
-  const activeVideo = videoSequence[activeIndex];
 
   const changeJourney = (index: number) => {
     if (journeyMotionTimer.current) clearTimeout(journeyMotionTimer.current);
@@ -333,81 +292,6 @@ export default function StudioHome() {
     if (contactCloseTimer.current) clearTimeout(contactCloseTimer.current);
   }, []);
 
-  useEffect(() => {
-    playingRef.current = isPlaying;
-    const video = videoRef.current;
-    if (!video) return;
-    video.muted = isMuted;
-    if (isPlaying) {
-      void video.play().catch(() => {
-        if (!video.muted) {
-          video.muted = true;
-          setIsMuted(true);
-          void video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
-        } else {
-          setIsPlaying(false);
-        }
-      });
-    } else video.pause();
-  }, [isPlaying]);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    const updateTime = () => setCurrentTime(video.currentTime || 0);
-    const updateDuration = () => setDuration(Number.isFinite(video.duration) ? video.duration : 0);
-    video.addEventListener("timeupdate", updateTime);
-    video.addEventListener("loadedmetadata", updateDuration);
-    video.addEventListener("durationchange", updateDuration);
-    return () => {
-      video.removeEventListener("timeupdate", updateTime);
-      video.removeEventListener("loadedmetadata", updateDuration);
-      video.removeEventListener("durationchange", updateDuration);
-    };
-  }, []);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    setIsSwitching(true);
-    let revealTimer: ReturnType<typeof setTimeout> | undefined;
-    let readyHandled = false;
-    const onReady = () => {
-      if (readyHandled) return;
-      readyHandled = true;
-      const pendingTime = pendingTimeRef.current;
-      if (pendingTime !== null) {
-        const latestAllowedTime = Number.isFinite(video.duration) ? Math.max(0, video.duration - 0.1) : pendingTime;
-        video.currentTime = Math.min(pendingTime, latestAllowedTime);
-        pendingTimeRef.current = null;
-        setCurrentTime(video.currentTime);
-      }
-      setDuration(Number.isFinite(video.duration) ? video.duration : 0);
-      if (playingRef.current) {
-        void video.play().catch(() => {
-          if (!video.muted) {
-            video.muted = true;
-            setIsMuted(true);
-            void video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
-          } else {
-            setIsPlaying(false);
-          }
-        });
-      }
-      revealTimer = setTimeout(() => setIsSwitching(false), 180);
-    };
-    video.addEventListener("loadeddata", onReady, { once: true });
-    if (video.readyState >= 2) onReady();
-    else video.load();
-
-    return () => {
-      video.removeEventListener("loadeddata", onReady);
-      if (revealTimer) clearTimeout(revealTimer);
-    };
-  }, [audioLanguage, activeIndex]);
-
   const onContentPointerMove = (event: PointerEvent<HTMLElement>) => {
     if (event.pointerType === "touch") return;
     const rect = event.currentTarget.getBoundingClientRect();
@@ -429,37 +313,6 @@ export default function StudioHome() {
     dotMatrix.classList.add("is-visible");
   };
   const hideHireQuoteDotMatrix = () => hireQuoteDotMatrixRef.current?.classList.remove("is-visible");
-  const switchLanguage = (language: "hindi" | "dub") => {
-    if (language === audioLanguage) return;
-    pendingTimeRef.current = videoRef.current?.currentTime ?? currentTime;
-    setIsSwitching(true);
-    setAudioLanguage(language);
-  };
-
-  const moveCarousel = (direction: number) => {
-    pendingTimeRef.current = 0;
-    setCurrentTime(0);
-    setAudioLanguage("dub");
-    setIsPlaying(true);
-    setActiveIndex(index => (index + direction + videoSequence.length) % videoSequence.length);
-  };
-
-  const selectVideo = (index: number) => {
-    if (index === activeIndex) return;
-    pendingTimeRef.current = 0;
-    setCurrentTime(0);
-    setAudioLanguage("dub");
-    setIsPlaying(true);
-    setActiveIndex(index);
-  };
-
-  const handleSwipeEnd = (event: PointerEvent<HTMLElement>) => {
-    if (swipeStartRef.current === null) return;
-    const distance = event.clientX - swipeStartRef.current;
-    swipeStartRef.current = null;
-    if (Math.abs(distance) > 55) moveCarousel(distance < 0 ? 1 : -1);
-  };
-
   return (
     <main className="home-page">
       {!contactOpen && <TargetCursor
@@ -510,100 +363,51 @@ export default function StudioHome() {
         aria-label="Satvic Movement home"
         onPointerMove={onContentPointerMove}
         onPointerLeave={hideDotMatrix}
-        onPointerDown={event => {
-          const target = event.target as HTMLElement;
-          swipeStartRef.current = target.closest("button, input") ? null : event.clientX;
-        }}
-        onPointerUp={handleSwipeEnd}
-        onPointerCancel={() => { swipeStartRef.current = null; }}
       >
         <div ref={dotMatrixRef} className="dot-matrix" aria-hidden="true" />
-        <h2 id="work" className="demo-showcase-title">My First Six Months: Bringing Satvic to More Languages</h2>
-        <p className="demo-showcase-subtitle">Working with the founder to dub Satvic videos for regional audiences.</p>
-        <p className="demo-showcase-instruction"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4Z" /><path d="M17 9a5 5 0 0 1 0 6m2-9a9 9 0 0 1 0 12" /></svg><span><strong>Press play, then turn on sound</strong> to hear the regional dub.</span></p>
         <div className="demo-showcase">
-        <div className="video-carousel" aria-label="Language video carousel">
-          {[-3, -2, -1, 1, 2, 3].map(offset => {
-            const index = (activeIndex + offset + videoSequence.length) % videoSequence.length;
-            const item = videoSequence[index];
-            return (
-              <div
-                key={`${offset}-${item.slug}`}
-                className={`video-preview-slot video-preview-${Math.abs(offset)} ${offset < 0 ? "is-left" : "is-right"}`}
-              >
-                <VideoPreview item={item} onSelect={() => selectVideo(index)} cursorLabel={item.label} />
-              </div>
-            );
-          })}
-          <button className="carousel-arrow carousel-arrow-left cursor-target" type="button" aria-label="Previous language video" onClick={() => moveCarousel(-1)}>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14.5 5-7 7 7 7" /></svg>
-          </button>
-          <button className="carousel-arrow carousel-arrow-right cursor-target" type="button" aria-label="Next language video" onClick={() => moveCarousel(1)}>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 5 7 7-7 7" /></svg>
-          </button>
-        <div className={`phone-player${isSwitching ? " is-switching" : ""}`}>
-          <Iphone
-            className="iphone-mockup"
-            aria-label={`${activeVideo.state} ${audioLanguage === "hindi" ? "Hindi" : activeVideo.label} video player`}
-            videoSrc={`/api/videos/${activeVideo.slug}/${audioLanguage === "hindi" ? "hindi" : activeVideo.language}`}
-            videoRef={videoRef}
-            videoAutoPlay={isPlaying}
-            videoMuted={isMuted}
-          />
-          <div className="phone-controls">
-            <div className="phone-status-row">
-              <div>
-                <span className="phone-control-kicker">{activeVideo.state.toUpperCase()} · AUDIO</span>
-                <strong className="phone-active-language">{audioLanguage === "hindi" ? "Hindi original" : `${activeVideo.label} dub`}</strong>
-              </div>
-              <span className={`phone-play-state${isPlaying ? "" : " is-paused"}`}><i />{isPlaying ? "PLAYING" : "PAUSED"}</span>
-            </div>
-            <div className="phone-language-switch" role="group" aria-label="Choose audio language">
-              <button className={`phone-language-button cursor-target${audioLanguage === "hindi" ? " is-active" : ""}`} data-cursor-label="Hindi" type="button" aria-pressed={audioLanguage === "hindi"} onClick={() => switchLanguage("hindi")}>Hindi</button>
-              <button className={`phone-language-button cursor-target${audioLanguage === "dub" ? " is-active" : ""}`} data-cursor-label={activeVideo.label} type="button" aria-pressed={audioLanguage === "dub"} onClick={() => switchLanguage("dub")}>{activeVideo.label}</button>
-            </div>
-            <div className="phone-progress">
-              <input
-                aria-label="Video position"
-                type="range"
-                min={0}
-                max={duration || 1}
-                step="0.1"
-                value={Math.min(currentTime, duration || 1)}
-                onChange={event => {
-                  const nextTime = Number(event.target.value);
-                  if (videoRef.current) videoRef.current.currentTime = nextTime;
-                  setCurrentTime(nextTime);
-                }}
-              />
-              <div><span>{formatTime(currentTime)}</span><span>{formatTime(duration)}</span></div>
-            </div>
-            <div className="phone-actions">
-              <button className="cursor-target" data-cursor-label={isPlaying ? "Pause" : "Play"} type="button" onClick={() => setIsPlaying(value => !value)} aria-label={isPlaying ? "Pause video" : "Play video"}>
-                <span className="phone-action-icon"><svg viewBox="0 0 16 16" aria-hidden="true">{isPlaying ? <rect x="3" y="3" width="10" height="10" rx="1.5" /> : <path d="M5 3.5 13 8l-8 4.5z" />}</svg></span>{isPlaying ? "Pause" : "Play"}
-              </button>
-              <button className="cursor-target" data-cursor-label={isMuted ? "Unmute" : "Mute"} type="button" onClick={() => {
-                const video = videoRef.current;
-                if (isMuted) {
-                  if (video) {
-                    video.muted = false;
-                    void video.play().then(() => setIsPlaying(true)).catch(() => {
-                      video.muted = true;
-                      setIsMuted(true);
-                    });
-                  }
-                  setIsMuted(false);
-                } else {
-                  if (video) video.muted = true;
-                  setIsMuted(true);
-                }
-              }} aria-label={isMuted ? "Unmute video" : "Mute video"} aria-pressed={isMuted}>
-                <span className="phone-action-icon"><svg viewBox="0 0 18 16" aria-hidden="true"><path d="M2 6v4h3l4 3V3L5 6H2Z" />{isMuted ? <path d="m12 6 4 4m0-4-4 4" /> : <path d="M12 6c1.5 1 1.5 3 0 4m2-6c3 2 3 6 0 8" />}</svg></span>{isMuted ? "Muted" : "Sound on"}
-              </button>
-            </div>
+          <div className="satvic-ai-vision">
+            <span className="satvic-ai-vision-kicker">A PRACTICAL PRODUCT VISION</span>
+            <h2 id="work" className="demo-showcase-title">Meet Satvic AI</h2>
+            <h3 className="satvic-ai-vision-heading">Why Satvic AI?</h3>
+            <p className="satvic-ai-vision-intro">A trusted guide that helps people turn Satvic wellness knowledge into everyday action.</p>
+            <ol className="satvic-ai-steps">
+              <li><span>01</span><div><strong>Build a trusted knowledge base</strong><p>Organize approved Satvic articles, videos, and workshop learnings—with permission and participant consent.</p></div></li>
+              <li><span>02</span><div><strong>Answer with Satvic context</strong><p>People ask questions in the app or website. AI finds relevant guidance and makes its sources clear.</p></div></li>
+              <li><span>03</span><div><strong>Make the next step useful</strong><p>Suggest a relevant practice, recipe, yoga session, or product—never a one-size-fits-all answer.</p></div></li>
+              <li><span>04</span><div><strong>Improve with care</strong><p>Use opt-in feedback to improve answers, protect personal data, and hand sensitive health questions to a human.</p></div></li>
+            </ol>
+            <p className="satvic-ai-vision-outcome">Helpful support can strengthen trust and product discovery; business results should be measured, not promised.</p>
           </div>
-        </div>
-        </div>
+          <div className="phone-player">
+            <Iphone className="iphone-mockup" aria-label="Satvic AI chat preview">
+              <div className="satvic-ai-screen">
+                <header className="satvic-ai-header">
+                  <img src="/logo-icon.svg" alt="" />
+                  <div><strong>Satvic AI</strong></div>
+                  <span className="satvic-ai-menu" aria-hidden="true">•••</span>
+                </header>
+                <div className="satvic-ai-conversation">
+                  <div className="satvic-ai-user-message">Healthy morning routine?</div>
+                  <div className="satvic-ai-answer">
+                    <img src="/logo-icon.svg" alt="" />
+                    <p>Start with water, a wholesome breakfast, and a few mindful breaths.</p>
+                  </div>
+                  <div className="satvic-ai-audio" aria-label="Audio response visualization">
+                    <span>Satvic AI · speaking</span>
+                    <div className="satvic-ai-bars" aria-hidden="true">
+                      {[12, 20, 15, 27, 18, 32, 22, 14, 25, 34, 19, 28, 16, 24, 12, 20, 30, 17, 26, 13, 22, 32, 18, 25, 14, 29, 19, 12].map((height, index) => (
+                        <i key={index} style={{ height, animationDelay: `${(index % 7) * -0.12}s` }} />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="satvic-ai-composer">
+                  <span aria-hidden="true">＋</span><span>Message Satvic AI</span><b aria-hidden="true">↑</b>
+                </div>
+              </div>
+            </Iphone>
+          </div>
         </div>
       </section>
       <section className="journey-section" aria-labelledby="journey-heading">
@@ -668,13 +472,13 @@ export default function StudioHome() {
         <div ref={hireQuoteDotMatrixRef} className="dot-matrix hire-quote-dot-matrix" aria-hidden="true" />
         <div className="hire-fit-layout">
           <div className="hire-fit-copy">
-            <span className="hire-fit-kicker">FOUNDER'S OFFICE · ROLE FIT</span>
-            <h2 id="hire-quote-heading">Looking for these skills? I’m the best fit for the Founder’s Office.</h2>
+            <span className="hire-fit-kicker">PROJECT MANAGEMENT · ROLE FIT</span>
+            <h2 id="hire-quote-heading">Looking for these skills? I’m ready to contribute in Project Management.</h2>
             <ul className="hire-fit-points">
-              <li><span className="hire-fit-number">01</span><span><strong>I take work from idea to delivery.</strong> I co-founded Mivyapar, led a seven-person team, and handled client work through execution.</span></li>
-              <li><span className="hire-fit-number">02</span><span><strong>I learn by building.</strong> My AI brochure generator cut document creation from hours to under ten minutes.</span></li>
-              <li><span className="hire-fit-number">03</span><span><strong>I use evidence to make decisions.</strong> Meta campaigns I managed grew engagement by 40% and leads by 38% on an approximately $435 budget.</span></li>
-              <li><span className="hire-fit-number">04</span><span><strong>I am ready to run the dubbing rollout.</strong> I can coordinate voice cloning, language reviews, and publishing for Tamil, Telugu, and Kannada.</span></li>
+              <li><span className="hire-fit-number">01</span><span><strong>I see AI as a way to help Satvic grow.</strong> I built an AI brochure generator that reduced document creation from hours to under ten minutes. I’d bring that same build-and-improve mindset to useful Satvic AI workflows.</span></li>
+              <li><span className="hire-fit-number">02</span><span><strong>I turn conversations into clear plans.</strong> I can listen to clients, understand requirements, write PRDs, and coordinate work through delivery. I also co-founded Mivyapar and led a seven-person team.</span></li>
+              <li><span className="hire-fit-number">03</span><span><strong>I communicate to bring people along.</strong> I’m comfortable explaining ideas, aligning clients and teammates, and presenting evidence-based recommendations to stakeholders.</span></li>
+              <li><span className="hire-fit-number">04</span><span><strong>I’m ready to join in the coming months.</strong> From day one, I can learn how Satvic works, identify repetitive tasks, and test automations that make operations more efficient—with results measured before scaling.</span></li>
             </ul>
           </div>
           <div className="hire-tool-groups">
@@ -683,7 +487,7 @@ export default function StudioHome() {
                 <p>{group.title}</p>
                 {group.tools.map(tool => (
                   <div className="hire-tool" key={tool.name}>
-                    <ToolLogo slug={tool.slug} fallback={tool.fallback} />
+                    <ToolLogo name={tool.name} slug={tool.slug} fallback={tool.fallback} />
                     <span>{tool.name}</span>
                   </div>
                 ))}
